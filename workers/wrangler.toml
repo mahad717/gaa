@@ -1,0 +1,32 @@
+# ============================================================================
+# Wasmo Platform — Cloudflare Worker config
+# Deploy:  cd workers && wrangler deploy
+# Secrets: wrangler secret put SIGNING_SECRET
+#          wrangler secret put STREAM_TOKEN        (optional: CF Stream signed mode)
+# ============================================================================
+
+name = "wasmo-edge"
+main = "worker.js"
+compatibility_date = "2026-08-01"
+
+routes = [
+  { pattern = "wasmo.site/*",  zone_name = "wasmo.site" },
+  { pattern = "www.wasmo.site/*", zone_name = "wasmo.site" },
+]
+
+[vars]
+SITE_URL = "https://wasmo.site"
+SUPABASE_URL = "https://kpfhccjgsgrdwjqhqtrg.supabase.co"
+# The anon key is public-safe (RLS is the security boundary) — plain var is fine.
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwZmhjY2pnc2dyZHdqcWhxdHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMTA0MDEsImV4cCI6MjEwNTU4NjQwMX0.p2n5xYBr_aNs_-f8Xb2DlLKooDEu2YBcIg2tZhMshYA"
+# Cloudflare Stream player domain for your account (find in CF Stream dashboard):
+STREAM_BASE_URL = ""                       # e.g. https://customer-abc123.cloudflarestream.com
+ALLOWED_ORIGINS = "https://wasmo.site,https://www.wasmo.site"
+TOKEN_TTL_SECONDS = "600"                  # signed playback token: 10 minutes
+ALLOW_EMPTY_REFERER = "false"              # strict hotlink protection
+HTML_CACHE_TTL = "300"
+SITEMAP_CACHE_TTL = "3600"
+
+# Observability (optional but recommended)
+[observability]
+enabled = true
