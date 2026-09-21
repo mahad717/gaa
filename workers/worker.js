@@ -628,10 +628,12 @@ const worker = {
         const hit = await cache.match(cacheKey);
         if (hit) return hit;
 
-        // Fetch origin (Next.js / static site on Pages or any backend)
-        const origin = await fetch(request, {
-          cf: { cacheTtl: 0, cacheEverything: false },
-        });
+        // Origin: the Next.js static export bundled into this worker via the
+        // [assets] binding (single-deploy architecture). Falls back to network
+        // proxying when ASSETS is not bound (external backend mode).
+        const origin = env.ASSETS
+          ? await env.ASSETS.fetch(new Request(request.url, { headers: request.headers }))
+          : await fetch(request, { cf: { cacheTtl: 0, cacheEverything: false } });
         let res = new Response(origin.body, origin);
 
         // Dynamic OG injection for video detail pages

@@ -2,8 +2,7 @@ import WasmoApp from '@/components/WasmoApp';
 import { getVideos } from '@/lib/supabase';
 import { buildWebsiteJsonLd, jsonLdScript } from '@/lib/seo';
 
-// Revalidate whenever Supabase content changes (ISR keeps SSR speed + SEO)
-export const revalidate = 60;
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gaa.gabeyre80.workers.dev';
 
 export default async function Page() {
   const { videos, source } = await getVideos(24);
@@ -19,7 +18,7 @@ export default async function Page() {
     itemListElement: videos.map((v, i) => ({
       '@type': 'ListItem',
       position: i + 1,
-      url: `https://wasmo.site/watch/${v.slug}`,
+      url: `${SITE_URL}/watch/${v.slug}`,
       name: v.title,
     })),
   };

@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  output: "standalone",
-  /* config options here */
+  // Static export → served by the Cloudflare Worker via Static Assets
+  // (single deploy: edge SEO/security layer + frontend, one URL).
+  output: "export",
+  images: { unoptimized: true },
   typescript: {
     ignoreBuildErrors: true,
   },

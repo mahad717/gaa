@@ -42,3 +42,17 @@ SITEMAP_CACHE_TTL = "3600"
 # Observability (optional but recommended)
 [observability]
 enabled = true
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Static Assets — the Next.js static export (repo root `bunx next build` with
+# output:"export" → out/, copied to workers/out) is served by this SAME worker:
+# one deploy, one URL, worker stays the edge SEO/security layer.
+#   Build:  cd <repo root> && bunx next build && rm -rf workers/out && cp -r out workers/out
+# ─────────────────────────────────────────────────────────────────────────────
+[assets]
+directory = "./out"
+binding = "ASSETS"
+not_found_handling = "single-page-application"   # /watch/* falls back to index.html shell
+# Worker handles these FIRST (SEO endpoints, media gateway, meta-injection);
+# everything else: static asset if it exists, else SPA index.html.
+run_worker_first = ["/", "/robots.txt", "/sitemap.xml", "/api/*", "/media/*", "/watch/*"]
