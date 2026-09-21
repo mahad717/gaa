@@ -1,17 +1,26 @@
 # ============================================================================
 # Wasmo Platform — Cloudflare Worker config
-# Deploy:  cd workers && wrangler deploy
-# Secrets: wrangler secret put SIGNING_SECRET
-#          wrangler secret put STREAM_TOKEN        (optional: CF Stream signed mode)
+# Deploy:  cd workers && wrangler deploy   (or via CF Workers Builds: set
+#          Root directory = workers, Build command = empty, Deploy = npx wrangler deploy)
+# Secrets (add in CF Dashboard → Settings → Variables and secrets, Type = Secret):
+#          SIGNING_SECRET   -> openssl rand -hex 32   (REQUIRED — signs HLS tokens)
+#          STREAM_TOKEN     -> optional, CF Stream signed-URL mode
 # ============================================================================
 
-name = "wasmo-edge"
+# Must match the Worker name created by the Cloudflare Git integration,
+# otherwise `wrangler deploy` creates a SECOND worker instead of updating it.
+name = "gaa"
 main = "worker.js"
 compatibility_date = "2026-08-01"
+# Keep vars/secrets defined in the dashboard that are not listed in [vars]
+# (prevents non-interactive CI deploys from wiping SIGNING_SECRET).
+keep_vars = true
 
 routes = [
-  { pattern = "wasmo.site/*",  zone_name = "wasmo.site" },
+  { pattern = "wasmo.site/*",     zone_name = "wasmo.site" },
   { pattern = "www.wasmo.site/*", zone_name = "wasmo.site" },
+  # NOTE: the wasmo.site zone must belong to the same CF account, or deploy fails;
+  # comment these out temporarily to deploy on *.workers.dev first.
 ]
 
 [vars]
