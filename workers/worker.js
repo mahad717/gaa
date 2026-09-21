@@ -188,7 +188,7 @@ function securityHeaders(env) {
 
 async function sbFetch(env, path, init = {}, cacheTtl = 60) {
   const cache = caches.default;
-  const cacheKey = new Request(`https://sb-cache.internal${path}`);
+  const cacheKey = new Request(`https://sb-cache.internal/v2${path}`);
   const hit = await cache.match(cacheKey);
   if (hit) return hit.json();
 
@@ -290,7 +290,7 @@ const esc = (s) =>
 /** Google video sitemap fetched live from Supabase (public/RLS-filtered). */
 async function handleSitemap(request, env, ctx) {
   const cache = caches.default;
-  const cacheKey = new Request(`${env.SITE_URL}/sitemap.xml`);
+  const cacheKey = new Request(`${env.SITE_URL}/sitemap.xml?v=2`);
   const hit = await cache.match(cacheKey);
   if (hit) return hit;
 
@@ -300,8 +300,10 @@ async function handleSitemap(request, env, ctx) {
     for (;;) {
       const rows = await sbFetch(
         env,
+        // PostgREST has no `page` param — sending one makes it treat `page`
+        // as a COLUMN FILTER (400 → empty sitemap). Paginate with offset.
         'videos?select=slug,title,description,thumbnail_url,duration,updated_at,published_at,age_restricted' +
-          `&status=eq.published&order=published_at.desc&page=${page}&limit=1000`
+          `&status=eq.published&order=published_at.desc&offset=${(page - 1) * 1000}&limit=1000`
       );
       entries.push(...rows);
       if (rows.length < 1000 || page >= 50) break; // 50k cap → switch to sitemap index beyond this
@@ -550,11 +552,30 @@ async function handleAgeVerify(request, env) {
  * shells. Idempotent: strips any existing og:, twitter: or video: meta tags,
  * then injects a fresh set.
  */
+/** Seconds → ISO-8601 duration (schema.org requires e.g. "PT4M35S"). */
+function secondsToIso8601(sec) {
+  const s = Math.max(0, Math.round(Number(sec) || 0));
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const r = s % 60;
+  let out = 'PT';
+  if (h) out += `${h}H`;
+  if (m) out += `${m}M`;
+  if (r || (!h && !m)) out += `${r}S`;
+  return out;
+}
+
+/**
+ * Server-side AEO injection for /watch/:slug — video-specific OG/Twitter meta
+ * PLUS VideoObject + BreadcrumbList JSON-LD so answer engines/crawlers receive
+ * complete structured data in the first HTML response (no JS execution needed).
+ */
 async function injectVideoMeta(html, env, video) {
   const title = esc(video.title);
   const desc = esc((video.summary ?? video.description ?? '').slice(0, 300));
   const thumb = esc(video.thumbnail_url ?? '');
   const pageUrl = `${env.SITE_URL}/watch/${esc(video.slug)}`;
+  const uploadDate = video.published_at ?? video.updated_at ?? new Date().toISOString();
 
   const metaTags = [
     `<meta name="rating" content="adult">`,
@@ -575,9 +596,49 @@ async function injectVideoMeta(html, env, video) {
     .filter(Boolean)
     .join('\n    ');
 
+  // ── Server-side JSON-LD: VideoObject + BreadcrumbList ──────────────────
+  // < is escaped as \u003c so user content can never close the script tag.
+  const videoObject = {
+    '@context': 'https://schema.org',
+    '@type': 'VideoObject',
+    name: video.title,
+    description: (video.summary ?? video.description ?? '').slice(0, 500),
+    thumbnailUrl: video.thumbnail_url ? [video.thumbnail_url] : undefined,
+    uploadDate,
+    ...(video.duration ? { duration: secondsToIso8601(video.duration) } : {}),
+    contentUrl: pageUrl,
+    embedUrl: pageUrl,
+    isFamilyFriendly: false,
+    ...(video.view_count != null
+      ? {
+          interactionStatistic: {
+            '@type': 'InteractionCounter',
+            interactionType: { '@type': 'WatchAction' },
+            userInteractionCount: video.view_count,
+          },
+        }
+      : {}),
+    publisher: { '@type': 'Organization', name: 'Wasmo', url: env.SITE_URL },
+  };
+  const breadcrumb = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: env.SITE_URL },
+      { '@type': 'ListItem', position: 2, name: video.title, item: pageUrl },
+    ],
+  };
+  const jsonLd = JSON.stringify([videoObject, breadcrumb])
+    .replace(/</g, '\\u003c')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+
   let out = html.replace(/<meta\s+(?:property|name)="(og|twitter|video):[^"]*"[^>]*>\s*/gi, '');
   if (out.includes('</head>')) {
-    out = out.replace('</head>', `    ${metaTags}\n</head>`);
+    out = out.replace(
+      '</head>',
+      `    ${metaTags}\n    <script type="application/ld+json">${jsonLd}</script>\n</head>`
+    );
   }
   return out;
 }
