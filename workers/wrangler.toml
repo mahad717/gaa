@@ -16,21 +16,24 @@ compatibility_date = "2026-08-01"
 # (prevents non-interactive CI deploys from wiping SIGNING_SECRET).
 keep_vars = true
 
-routes = [
-  { pattern = "wasmo.site/*",     zone_name = "wasmo.site" },
-  { pattern = "www.wasmo.site/*", zone_name = "wasmo.site" },
-  # NOTE: the wasmo.site zone must belong to the same CF account, or deploy fails;
-  # comment these out temporarily to deploy on *.workers.dev first.
-]
+# Routes attach the worker to wasmo.site — UNCOMMENT after the domain is
+# registered & added to this CF account (Settings → Domains & Routes).
+# Until then the worker lives at https://gaa.gabeyre80.workers.dev
+# routes = [
+#   { pattern = "wasmo.site/*",     zone_name = "wasmo.site" },
+#   { pattern = "www.wasmo.site/*", zone_name = "wasmo.site" },
+# ]
 
 [vars]
-SITE_URL = "https://wasmo.site"
+# STAGING: workers.dev — switch to "https://wasmo.site" once the domain is live.
+# Drives canonical URLs, sitemap.xml, JSON-LD and the signed manifest URLs.
+SITE_URL = "https://gaa.gabeyre80.workers.dev"
 SUPABASE_URL = "https://kpfhccjgsgrdwjqhqtrg.supabase.co"
 # The anon key is public-safe (RLS is the security boundary) — plain var is fine.
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwZmhjY2pnc2dyZHdqcWhxdHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMTA0MDEsImV4cCI6MjEwNTU4NjQwMX0.p2n5xYBr_aNs_-f8Xb2DlLKooDEu2YBcIg2tZhMshYA"
 # Cloudflare Stream player domain for your account (find in CF Stream dashboard):
 STREAM_BASE_URL = ""                       # e.g. https://customer-abc123.cloudflarestream.com
-ALLOWED_ORIGINS = "https://wasmo.site,https://www.wasmo.site"
+ALLOWED_ORIGINS = "https://gaa.gabeyre80.workers.dev,https://wasmo.site,https://www.wasmo.site"  # Referer/Origin allowlist (workers.dev now, wasmo.site ready for later)
 TOKEN_TTL_SECONDS = "600"                  # signed playback token: 10 minutes
 ALLOW_EMPTY_REFERER = "false"              # strict hotlink protection
 HTML_CACHE_TTL = "300"
