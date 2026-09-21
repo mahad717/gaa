@@ -19,6 +19,9 @@
  */
 
 const AGE_COOKIE = 'wv_age_ok';
+// Bump on deploy-affecting changes (JSON-LD format, header set, meta rules) so
+// per-colo Cache API entries from previous code versions stop being served.
+const CACHE_BUILD = 'v3';
 const AGE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
 const DEFAULT_ENV = {
@@ -343,7 +346,9 @@ ${[...staticUrls, ...videoUrls].join('\n')}
   const res = xmlResponse(xml, 200, {
     'cache-control': `public, max-age=${env.SITEMAP_CACHE_TTL}, stale-while-revalidate=86400`,
   });
-  ctx.waitUntil(cache.put(cacheKey, res.clone()));
+  // Never poison the edge cache with an empty sitemap (e.g. transient
+  // Supabase hiccup) — skip caching when no video rows came back.
+  if (entries.length > 0) ctx.waitUntil(cache.put(cacheKey, res.clone()));
   return res;
 }
 
@@ -685,7 +690,7 @@ const worker = {
         }
 
         const cache = caches.default;
-        const cacheKey = new Request(`${env.SITE_URL}${path}${url.search}`);
+        const cacheKey = new Request(`${env.SITE_URL}${CACHE_BUILD}${path}${url.search}`);
         const hit = await cache.match(cacheKey);
         if (hit) return hit;
 
