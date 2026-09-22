@@ -56,7 +56,7 @@ export const FIXTURE_VIDEOS: Video[] = [
     age_restricted: true,
     view_count: 15230,
     published_at: new Date(Date.now() - 9 * 86400_000).toISOString(),
-    category: { name: 'Documentary', slug: 'documentary' },
+    category: { name: 'Somali Wasmo', slug: 'somali-wasmo' },
     tags: [{ name: 'Nature', slug: 'nature' }],
     faqs: [
       {
@@ -93,7 +93,7 @@ export const FIXTURE_VIDEOS: Video[] = [
     age_restricted: true,
     view_count: 8421,
     published_at: new Date(Date.now() - 3 * 86400_000).toISOString(),
-    category: { name: 'Technology', slug: 'technology' },
+    category: { name: 'Wasmo', slug: 'wasmo' },
     tags: [
       { name: 'Tutorial', slug: 'tutorial' },
       { name: 'Streaming', slug: 'streaming' },
@@ -134,7 +134,7 @@ export const FIXTURE_VIDEOS: Video[] = [
     age_restricted: true,
     view_count: 4217,
     published_at: new Date(Date.now() - 1 * 86400_000).toISOString(),
-    category: { name: 'Education', slug: 'education' },
+    category: { name: 'Somali Wasmo', slug: 'somali-wasmo' },
     tags: [
       { name: 'Tutorial', slug: 'tutorial' },
       { name: 'Photography', slug: 'photography' },
@@ -151,8 +151,6 @@ export const FIXTURE_VIDEOS: Video[] = [
 ];
 
 export const FIXTURE_CATEGORIES = [
-  { name: 'Education', slug: 'education' },
-  { name: 'Documentary', slug: 'documentary' },
-  { name: 'Technology', slug: 'technology' },
-  { name: 'Lifestyle', slug: 'lifestyle' },
+  { name: 'Somali Wasmo', slug: 'somali-wasmo' },
+  { name: 'Wasmo', slug: 'wasmo' },
 ];

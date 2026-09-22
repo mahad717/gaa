@@ -338,10 +338,8 @@ $$;
 --     Content is intentionally neutral placeholder media.
 -- ============================================================================
 insert into public.categories (id, name, slug, description, position) values
-  ('11111111-1111-4111-8111-111111111111', 'Education',   'education',   'Learning-focused programming.',        1),
-  ('22222222-2222-4222-8222-222222222222', 'Documentary', 'documentary', 'In-depth factual storytelling.',       2),
-  ('33333333-3333-4333-8333-333333333333', 'Technology',  'technology',  'Software, hardware and engineering.',  3),
-  ('44444444-4444-4444-8444-444444444444', 'Lifestyle',   'lifestyle',   'Food, travel and everyday living.',    4)
+  ('11111111-1111-4111-8111-111111111111', 'Somali Wasmo', 'somali-wasmo', 'Somali wasmo videos.', 1),
+  ('22222222-2222-4222-8222-222222222222', 'Wasmo',        'wasmo',        'Wasmo videos.',        2)
 on conflict (id) do nothing;
 
 insert into public.tags (id, name, slug) values
