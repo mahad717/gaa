@@ -7,7 +7,7 @@
  * UI patterns run client-side so everything is demonstrable on one route.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import AgeGate from '@/components/video/AgeGate';
 import VideoPlayer from '@/components/video/VideoPlayer';
 import type { Video } from '@/lib/fixtures';
@@ -68,6 +68,40 @@ function VideoCard({ video, onOpen }: { video: Video; onOpen: () => void }) {
           </span>
         </span>
       </button>
+    </li>
+  );
+}
+
+function SponsoredTile() {
+  return (
+    <li>
+      <a
+        href="/go/smartlink"
+        rel="nofollow sponsored"
+        aria-label="Sponsored: watch free content"
+        className="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-zinc-800 bg-gradient-to-br from-rose-950/70 via-zinc-900 to-zinc-950 text-left transition hover:border-rose-700"
+      >
+        <span className="relative flex aspect-video items-center justify-center overflow-hidden">
+          <span className="absolute inset-0 bg-[radial-gradient(closest-side,rgba(225,29,72,0.35),transparent)]" />
+          <span className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-rose-800/60 bg-black">
+            <img src="/wasmo-logo.png" alt="" className="h-full w-full object-cover" loading="lazy" />
+          </span>
+          <span className="absolute left-2 top-2 rounded bg-black/80 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-rose-400">
+            Hot
+          </span>
+          <span className="absolute bottom-2 right-2 rounded bg-black/80 px-1.5 py-0.5 text-xs font-medium text-zinc-100">
+            Live now
+          </span>
+        </span>
+        <span className="block p-3">
+          <span className="line-clamp-2 block text-sm font-semibold leading-snug text-zinc-100">
+            🔥 Daawo bilaash ah — exclusive 18+ content near you
+          </span>
+          <span className="mt-1.5 block text-xs font-medium text-rose-400 group-hover:text-rose-300">
+            Bilaash · No signup · Watch now →
+          </span>
+        </span>
+      </a>
     </li>
   );
 }
@@ -163,7 +197,7 @@ function DetailView({
         </p>
       </header>
 
-      <section aria-label="Video player" className="mb-8">
+      <section aria-label="Video player" className="mb-6">
         <VideoPlayer
           slug={video.slug}
           demoManifest={video.demo_manifest}
@@ -171,6 +205,30 @@ function DetailView({
           title={video.title}
         />
       </section>
+
+      {/* Below-player smartlink banner — prime conversion slot */}
+      <a
+        href="/go/smartlink"
+        rel="nofollow sponsored"
+        className="group mb-8 flex items-center justify-between gap-3 rounded-xl border border-rose-900/60 bg-gradient-to-r from-rose-950/80 via-zinc-900 to-zinc-950 p-4 transition hover:border-rose-700"
+      >
+        <span className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-black">
+            <img src="/wasmo-logo.png" alt="" className="h-full w-full object-cover" loading="lazy" />
+          </span>
+          <span>
+            <span className="block text-sm font-bold text-white">
+              🔥 Daawo bilaash ah — hot 18+ content in your area
+            </span>
+            <span className="block text-xs text-zinc-400">
+              Bilaash · No signup · Works on all Somali networks
+            </span>
+          </span>
+        </span>
+        <span className="hidden shrink-0 rounded-lg bg-gradient-to-r from-rose-600 to-orange-500 px-4 py-2 text-sm font-bold text-white transition group-hover:brightness-110 sm:block">
+          Watch free →
+        </span>
+      </a>
 
       {video.summary && (
         <section
@@ -293,9 +351,13 @@ export default function WasmoApp({ initialVideos }: { initialVideos: Video[] }) 
               className="flex shrink-0 items-center gap-2 text-lg font-black tracking-tight text-white"
               aria-label="Wasmo home"
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-600 font-black text-white">
-                W
-              </span>
+              <img
+                src="/wasmo-logo.png"
+                alt="Wasmo"
+                width={32}
+                height={32}
+                className="h-8 w-8 rounded-lg object-cover"
+              />
               <span>
                 Wasmo<span className="text-rose-500">.</span>
               </span>
@@ -361,8 +423,12 @@ export default function WasmoApp({ initialVideos }: { initialVideos: Video[] }) 
                   </div>
                 ) : (
                   <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {filtered.map((v) => (
-                      <VideoCard key={v.slug} video={v} onOpen={() => setActiveSlug(v.slug)} />
+                    {filtered.map((v, i) => (
+                      <Fragment key={v.slug}>
+                        <VideoCard video={v} onOpen={() => setActiveSlug(v.slug)} />
+                        {/* In-grid sponsored tile — smartlink monetization slot */}
+                        {i === 6 && <SponsoredTile />}
+                      </Fragment>
                     ))}
                   </ul>
                 )}
@@ -387,6 +453,15 @@ export default function WasmoApp({ initialVideos }: { initialVideos: Video[] }) 
             </p>
           </div>
         </footer>
+
+        {/* Mobile sticky smartlink CTA — highest-visibility slot on phones */}
+        <a
+          href="/go/smartlink"
+          rel="nofollow sponsored"
+          className="sticky bottom-0 z-40 flex items-center justify-center gap-2 bg-gradient-to-r from-rose-600 to-orange-500 px-4 py-3 text-center text-sm font-bold text-white sm:hidden"
+        >
+          🔥 Daawo bilaash ah — Watch free now
+        </a>
       </div>
     </AgeGate>
   );

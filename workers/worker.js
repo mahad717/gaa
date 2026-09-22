@@ -23,22 +23,24 @@ const AGE_COOKIE = 'wv_age_ok';
 // per-colo Cache API entries from previous code versions stop being served.
 const CACHE_BUILD = 'v3';
 
-/* ────────────────── Affiliate offers (Adultforce) ──────────────────
- * 1. Sign up at Adultforce → Offers → copy the "Tracking Link"
- * 2. Paste it as `url` below (replace the placeholder)
- * 3. Redeploy — the public /go/<id> links NEVER change, so old posts/ads
- *    keep working when you swap the destination or rotate offers.
- * Set age_gate:true to render the offer as a native card on the age-gate.
+/* ────────────────── Affiliate offers (Lospollos smartlinks) ──────────────────
+ * Lospollos smartlinks auto-route each visitor to the highest-paying offer for
+ * their geo/device/carrier — ideal for Somali mobile traffic (Hormuud, Somtel,
+ * Telesom). The site's /go/* placements (age gate, grid tile, player banner,
+ * mobile sticky bar) all funnel into ONE cloaked link:
+ * 1. Log in to Lospollos → copy YOUR smartlink URL
+ * 2. Paste it as `url` below → redeploy. Public /go/ links NEVER change.
  */
+const SMARTLINK_OFFER = {
+  url: 'https://lospollos.com/', // ← TODO: paste your Lospollos smartlink tracking URL
+  title: '🔥 Hot 18+ content in your area',
+  subtitle: 'Bilaash · No signup · Works on Hormuud, Somtel & Telesom',
+  cta: '▶ Daawo Hadda — Watch Free',
+  age_gate: true,
+};
 const OFFERS = {
-  'cams-free': {
-    url: 'https://www.adultforce.com/', // ← TODO: paste real Adultforce tracking URL
-    title: 'Free Live Cams',
-    subtitle: 'Thousands of models online right now — join free',
-    cta: '🔥 Watch Free Cams',
-    age_gate: true,
-  },
-  // 'offer-2': { url: '…', title: '…', subtitle: '…', cta: '…', age_gate: false },
+  smartlink: SMARTLINK_OFFER,
+  'cams-free': SMARTLINK_OFFER, // legacy alias — old links keep converting
 };
 // Sponsored-label toggle: '' = undisclosed (default), e.g. 'Sponsored' to disclose.
 const AFF_LABEL = '';
@@ -343,6 +345,8 @@ function ageInterstitial(redirectUrl, env) {
 </head>
 <body>
 <main class="card">
+  <img src="/wasmo-logo.png" alt="Wasmo" width="56" height="56"
+       style="border-radius:14px;margin:0 auto 14px;display:block;border:1px solid #3f3f46">
   <h1>This website contains age-restricted material</h1>
   <p>You must be 18 years or older (or the age of majority in your jurisdiction) to enter.
      By continuing you confirm that you are of legal age and that viewing such content is

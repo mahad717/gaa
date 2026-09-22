@@ -58,7 +58,7 @@ export const metadata: Metadata = {
       "Adaptive streaming, crawlable transcripts and edge-cached delivery.",
   },
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/wasmo-logo.png",
   },
 };
 
