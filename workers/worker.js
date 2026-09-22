@@ -22,6 +22,26 @@ const AGE_COOKIE = 'wv_age_ok';
 // Bump on deploy-affecting changes (JSON-LD format, header set, meta rules) so
 // per-colo Cache API entries from previous code versions stop being served.
 const CACHE_BUILD = 'v3';
+
+/* ────────────────── Affiliate offers (Adultforce) ──────────────────
+ * 1. Sign up at Adultforce → Offers → copy the "Tracking Link"
+ * 2. Paste it as `url` below (replace the placeholder)
+ * 3. Redeploy — the public /go/<id> links NEVER change, so old posts/ads
+ *    keep working when you swap the destination or rotate offers.
+ * Set age_gate:true to render the offer as a native card on the age-gate.
+ */
+const OFFERS = {
+  'cams-free': {
+    url: 'https://www.adultforce.com/', // ← TODO: paste real Adultforce tracking URL
+    title: 'Free Live Cams',
+    subtitle: 'Thousands of models online right now — join free',
+    cta: '🔥 Watch Free Cams',
+    age_gate: true,
+  },
+  // 'offer-2': { url: '…', title: '…', subtitle: '…', cta: '…', age_gate: false },
+};
+// Sponsored-label toggle: '' = undisclosed (default), e.g. 'Sponsored' to disclose.
+const AFF_LABEL = '';
 const AGE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year
 
 const DEFAULT_ENV = {
@@ -237,7 +257,54 @@ function hasAgeCookie(request) {
   return cookie.split(/;\s*/).some((c) => c.trim().startsWith(`${AGE_COOKIE}=1`));
 }
 
+/** Cloaked affiliate redirect: /go/:offerId → configured tracking URL. */
+function handleGoRedirect(env, offerId, ctx) {
+  const offer = OFFERS[offerId];
+  if (!offer?.url) {
+    return new Response(JSON.stringify({ error: 'unknown_offer' }), {
+      status: 404,
+      headers: { 'content-type': 'application/json' },
+    });
+  }
+  // Server-side click log → visible in Workers observability (Logs) dashboard.
+  ctx?.waitUntil(
+    Promise.resolve().then(() => console.log(JSON.stringify({ evt: 'aff_click', offer: offerId })))
+  );
+  return new Response(null, {
+    status: 302,
+    headers: {
+      location: offer.url,
+      // Keep the redirect out of every index/crawl and out of any edge cache.
+      'x-robots-tag': 'noindex, nofollow',
+      'cache-control': 'no-store, private',
+      'referrer-policy': 'no-referrer',
+    },
+  });
+}
+
+/** Native offer card for the age-gate (matches the dark interstitial theme). */
+function offerGateCardHtml(offer, offerId) {
+  const label = AFF_LABEL
+    ? `<div class="aff-label">${esc(AFF_LABEL)}</div>`
+    : '';
+  return `
+  <div class="aff-wrap">
+    <div class="aff-divider"><span>Advertisement</span></div>
+    <a class="aff-card" href="/go/${esc(offerId)}" rel="nofollow sponsored">
+      <div class="aff-glow"></div>
+      <div class="aff-title">${esc(offer.title)}</div>
+      <div class="aff-sub">${esc(offer.subtitle)}</div>
+      <div class="aff-cta">${esc(offer.cta)}</div>
+      ${label}
+    </a>
+  </div>`;
+}
+
 function ageInterstitial(redirectUrl, env) {
+  const gateOffersHtml = Object.entries(OFFERS)
+    .filter(([, o]) => o.age_gate && o.url)
+    .map(([id, o]) => offerGateCardHtml(o, id))
+    .join('\n');
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -258,6 +325,20 @@ function ageInterstitial(redirectUrl, env) {
        text-decoration:none;border:0;cursor:pointer;font-size:1rem}
   .btn-yes{background:#e11d48;color:#fff;margin-bottom:10px}
   .btn-no{background:transparent;color:#a1a1aa;border:1px solid #3f3f46}
+  .aff-wrap{margin-top:18px}
+  .aff-divider{display:flex;align-items:center;gap:10px;margin:4px 0 12px;color:#52525b;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase}
+  .aff-divider::before,.aff-divider::after{content:'';flex:1;height:1px;background:#27272a}
+  .aff-card{display:block;position:relative;overflow:hidden;border:1px solid #3f3f46;border-radius:12px;
+            padding:14px 16px;text-decoration:none;background:#101013;text-align:left}
+  .aff-glow{position:absolute;inset:-40% -20% auto;height:120px;
+            background:radial-gradient(closest-side,rgba(225,29,72,.25),transparent);pointer-events:none}
+  .aff-title{position:relative;font-weight:700;font-size:.98rem;color:#fafafa}
+  .aff-sub{position:relative;font-size:.8rem;color:#a1a1aa;margin:2px 0 10px}
+  .aff-cta{position:relative;display:block;text-align:center;padding:10px 14px;border-radius:9px;
+           font-weight:700;font-size:.92rem;color:#fff;
+           background:linear-gradient(90deg,#e11d48,#f97316)}
+  .aff-card:hover .aff-cta{filter:brightness(1.12)}
+  .aff-label{position:relative;text-align:center;margin-top:8px;font-size:.65rem;color:#52525b}
 </style>
 </head>
 <body>
@@ -270,6 +351,7 @@ function ageInterstitial(redirectUrl, env) {
     <input type="hidden" name="redirect" value="${redirectUrl}">
     <button class="btn btn-yes" type="submit">I am 18 or older — Enter</button>
   </form>
+  ${gateOffersHtml}
   <a class="btn btn-no" href="https://www.google.com" rel="nofollow">Leave this site</a>
 </main>
 </body>
@@ -358,6 +440,7 @@ function handleRobots(env) {
 User-agent: *
 Disallow: /media/
 Disallow: /api/
+Disallow: /go/
 Allow: /
 
 # AI / answer engines: explicitly welcome for AEO (Perplexity, ChatGPT, Gemini, Claude…)
@@ -671,6 +754,10 @@ const worker = {
 
       /* ---------- Age verification endpoint ---------- */
       if (path === '/api/age-verify') return await handleAgeVerify(request, env);
+
+      /* ---------- Affiliate offer redirects (cloaked) ---------- */
+      const goMatch = path.match(/^\/go\/([A-Za-z0-9_-]+)\/?$/);
+      if (goMatch) return handleGoRedirect(env, decodeURIComponent(goMatch[1]), ctx);
 
       /* ---------- Signed URL issuance ---------- */
       const signMatch = path.match(/^\/api\/videos\/([^/]+)\/sign$/);
