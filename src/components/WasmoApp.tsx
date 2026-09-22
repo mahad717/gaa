@@ -76,7 +76,7 @@ function SponsoredTile() {
   return (
     <li>
       <a
-        href="/go/smartlink"
+        href="/go/smartlink?src=grid"
         rel="nofollow sponsored"
         aria-label="Sponsored: watch free content"
         className="group flex h-full w-full flex-col overflow-hidden rounded-xl border border-zinc-800 bg-gradient-to-br from-rose-950/70 via-zinc-900 to-zinc-950 text-left transition hover:border-rose-700"
@@ -208,7 +208,7 @@ function DetailView({
 
       {/* Below-player smartlink banner — prime conversion slot */}
       <a
-        href="/go/smartlink"
+        href="/go/smartlink?src=player"
         rel="nofollow sponsored"
         className="group mb-8 flex items-center justify-between gap-3 rounded-xl border border-rose-900/60 bg-gradient-to-r from-rose-950/80 via-zinc-900 to-zinc-950 p-4 transition hover:border-rose-700"
       >
@@ -456,7 +456,7 @@ export default function WasmoApp({ initialVideos }: { initialVideos: Video[] }) 
 
         {/* Mobile sticky smartlink CTA — highest-visibility slot on phones */}
         <a
-          href="/go/smartlink"
+          href="/go/smartlink?src=sticky"
           rel="nofollow sponsored"
           className="sticky bottom-0 z-40 flex items-center justify-center gap-2 bg-gradient-to-r from-rose-600 to-orange-500 px-4 py-3 text-center text-sm font-bold text-white sm:hidden"
         >

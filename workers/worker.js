@@ -37,6 +37,10 @@ const SMARTLINK_OFFER = {
   subtitle: 'Bilaash · No signup · Works on Hormuud, Somtel & Telesom',
   cta: '▶ Daawo Hadda — Watch Free',
   age_gate: true,
+  // Pre-lander: /go/:id serves a warm-up page ("girls near you" picker) instead
+  // of an instant redirect; the page's CTAs exit via /go/:id?go=1. Smartlinks
+  // convert 2-3× warmer with one engagement step before the redirect.
+  prelander: true,
 };
 const OFFERS = {
   smartlink: SMARTLINK_OFFER,
@@ -259,8 +263,27 @@ function hasAgeCookie(request) {
   return cookie.split(/;\s*/).some((c) => c.trim().startsWith(`${AGE_COOKIE}=1`));
 }
 
-/** Cloaked affiliate redirect: /go/:offerId → configured tracking URL. */
-function handleGoRedirect(env, offerId, ctx) {
+/** Short unique click id stamped into sub1 for network-side attribution. */
+const clickId = () =>
+  Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+/** Whitelisted funnel-source tag (we control every entry point). */
+function funnelSrc(url) {
+  return (
+    (url.searchParams.get('src') ?? 'direct').replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 48) ||
+    'direct'
+  );
+}
+
+/**
+ * Cloaked offer funnel:
+ *   /go/:id        → prelander warm-up page  (when offer.prelander)
+ *   /go/:id?go=1   → exit hop: 302 → smartlink with subid attribution
+ *   /go/:id        → direct 302 when the offer has no prelander
+ * Every hop is noindex/nofollow, never cached, and logged to Workers Logs so
+ * impressions vs exits (funnel CR) can be computed from the dashboard.
+ */
+function handleGo(env, offerId, request, url, ctx) {
   const offer = OFFERS[offerId];
   if (!offer?.url) {
     return new Response(JSON.stringify({ error: 'unknown_offer' }), {
@@ -268,7 +291,50 @@ function handleGoRedirect(env, offerId, ctx) {
       headers: { 'content-type': 'application/json' },
     });
   }
-  // Server-side click log → visible in Workers observability (Logs) dashboard.
+  const src = funnelSrc(url);
+  const city = request.cf?.city ?? '';
+
+  /* ── Exit hop: leave to the smartlink carrying attribution ── */
+  if (url.searchParams.get('go') === '1') {
+    const cid = clickId();
+    const target = new URL(offer.url);
+    if (offer.track !== false) {
+      // Forward caller-supplied sub* params, then stamp ours (Lospollos
+      // accepts sub1..sub5; adjust names here if your campaign uses others).
+      for (const [k, v] of url.searchParams) {
+        if (/^sub\d*$/i.test(k) && v) target.searchParams.set(k, v);
+      }
+      target.searchParams.set('sub1', cid); // unique click id
+      target.searchParams.set('sub2', `${offerId}.${src}`); // placement + interaction
+    }
+    ctx?.waitUntil(
+      Promise.resolve().then(() =>
+        console.log(JSON.stringify({ evt: 'aff_exit', offer: offerId, src, clickId: cid }))
+      )
+    );
+    return new Response(null, {
+      status: 302,
+      headers: {
+        location: target.toString(),
+        // Keep the redirect out of every index/crawl and out of any edge cache.
+        'x-robots-tag': 'noindex, nofollow',
+        'cache-control': 'no-store, private',
+        'referrer-policy': 'no-referrer',
+      },
+    });
+  }
+
+  /* ── Prelander: warm up before the exit (2-3× smartlink CR) ── */
+  if (offer.prelander) {
+    ctx?.waitUntil(
+      Promise.resolve().then(() =>
+        console.log(JSON.stringify({ evt: 'aff_prelander', offer: offerId, src, city }))
+      )
+    );
+    return prelanderHtml(offer, offerId, src, city);
+  }
+
+  /* ── Legacy direct redirect (offers without a prelander) ── */
   ctx?.waitUntil(
     Promise.resolve().then(() => console.log(JSON.stringify({ evt: 'aff_click', offer: offerId })))
   );
@@ -276,10 +342,182 @@ function handleGoRedirect(env, offerId, ctx) {
     status: 302,
     headers: {
       location: offer.url,
-      // Keep the redirect out of every index/crawl and out of any edge cache.
       'x-robots-tag': 'noindex, nofollow',
       'cache-control': 'no-store, private',
       'referrer-policy': 'no-referrer',
+    },
+  });
+}
+
+/* ─────────────── Pre-landing page (smartlink warm-up) ─────────────── */
+
+/** Teaser roster — placeholder personas; the smartlink serves the real ones. */
+const PRELANDER_MODELS = [
+  { n: 'Amina', a: 21, d: '0.8 km', g: 'linear-gradient(160deg,#7c3aed,#e11d48)', i: 'wants to chat' },
+  { n: 'Hodan', a: 23, d: '1.2 km', g: 'linear-gradient(160deg,#e11d48,#f97316)', i: 'is live now' },
+  { n: 'Sagal', a: 20, d: '1.9 km', g: 'linear-gradient(160deg,#0ea5e9,#7c3aed)', i: 'just joined' },
+  { n: 'Ubah', a: 22, d: '2.4 km', g: 'linear-gradient(160deg,#f97316,#eab308)', i: 'wants a video call' },
+  { n: 'Deqa', a: 19, d: '2.9 km', g: 'linear-gradient(160deg,#db2777,#7c3aed)', i: 'is feeling lonely' },
+  { n: 'Fartun', a: 24, d: '3.1 km', g: 'linear-gradient(160deg,#059669,#0ea5e9)', i: 'wants to chat' },
+  { n: 'Nasra', a: 21, d: '3.6 km', g: 'linear-gradient(160deg,#ea580c,#e11d48)', i: 'is live now' },
+  { n: 'Idil', a: 20, d: '4.2 km', g: 'linear-gradient(160deg,#e11d48,#7c3aed)', i: 'just joined' },
+];
+
+const SILHOUETTE_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.6" r="4" fill="rgba(255,255,255,.88)"/><path d="M3.5 21c.6-4.2 4-6.4 8.5-6.4s7.9 2.2 8.5 6.4z" fill="rgba(255,255,255,.88)"/></svg>`;
+
+/**
+ * Engagement prelander: city-personalized "matched girls" grid. Any card click
+ * (or the main CTA) plays a short connecting animation, then exits via
+ * /go/:id?go=1 with the interaction stamped into src for attribution.
+ * Self-contained: inline CSS/JS only, no external requests, mobile-first
+ * (Somali traffic is ~all phones). Served noindex + no-store, never cached.
+ */
+function prelanderHtml(offer, offerId, src, city) {
+  const cityHtml = city ? esc(city) : 'your area';
+  const matched = 3 + Math.floor(Math.random() * 4); // 3-6 near you
+  const cards = PRELANDER_MODELS.map(
+    (m) => `<button class="card" type="button" onclick="go('pick-${m.n.toLowerCase()}')">
+      <span class="ava" style="background:${m.g}">${SILHOUETTE_SVG}
+        <span class="live"><i></i>LIVE</span>
+      </span>
+      <span class="m"><b>${m.n}, ${m.a}</b><small>${m.d} · ${m.i}</small></span>
+    </button>`
+  ).join('\n    ');
+  const safeSrc = JSON.stringify(src).replace(/</g, '\\u003c');
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="rating" content="adult">
+<meta name="rating" content="RTA-5042-1996-1400-1577-RTA">
+<title>Connecting… · Wasmo</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  [hidden]{display:none!important}
+  body{background:#09090b;color:#fafafa;font:16px/1.55 system-ui,-apple-system,sans-serif;
+       min-height:100vh;display:flex;flex-direction:column}
+  header{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid #18181b}
+  header img{width:34px;height:34px;border-radius:9px;border:1px solid #3f3f46;display:block}
+  .brand{font-weight:800;letter-spacing:.02em}
+  .pill{margin-left:auto;font-size:.72rem;font-weight:700;color:#4ade80;
+        background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.25);
+        padding:4px 9px;border-radius:999px;white-space:nowrap}
+  main{width:100%;max-width:560px;margin:0 auto;padding:22px 16px 30px;flex:1}
+  .scan{text-align:center;padding:44px 16px;color:#a1a1aa}
+  .scan b{color:#fafafa}
+  .bar{max-width:300px;height:5px;background:#18181b;border-radius:999px;margin:16px auto 0;overflow:hidden}
+  .bar i{display:block;height:100%;width:8%;border-radius:999px;
+         background:linear-gradient(90deg,#e11d48,#f97316);animation:scan .9s ease-out forwards}
+  @keyframes scan{from{width:8%}to{width:100%}}
+  h1{font-size:1.28rem;line-height:1.3;margin-bottom:6px}
+  h1 b{color:#fb7185}
+  .sub{color:#a1a1aa;font-size:.9rem;margin-bottom:16px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
+  @media(min-width:480px){.grid{grid-template-columns:repeat(4,1fr)}}
+  .card{position:relative;overflow:hidden;border:1px solid #27272a;border-radius:14px;
+        background:#101013;padding:0 0 8px;cursor:pointer;text-align:left;
+        transition:transform .12s ease,border-color .12s ease;font:inherit;color:inherit}
+  .card:hover{transform:translateY(-2px);border-color:#e11d48}
+  .card:active{transform:scale(.97)}
+  .ava{position:relative;display:block;aspect-ratio:3/4}
+  .ava svg{position:absolute;inset:0;width:100%;height:100%;opacity:.9}
+  .live{position:absolute;left:6px;top:6px;display:flex;align-items:center;gap:4px;
+        font-size:.6rem;font-weight:800;letter-spacing:.08em;color:#fff;background:rgba(0,0,0,.55);
+        padding:3px 6px;border-radius:999px}
+  .live i{width:6px;height:6px;border-radius:50%;background:#ef4444;animation:pulse 1.2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  .m{display:block;padding:8px 9px 0}
+  .m b{display:block;font-size:.82rem;color:#fafafa}
+  .m small{display:block;font-size:.68rem;color:#a1a1aa;margin-top:1px}
+  .cta{display:block;width:100%;text-align:center;padding:15px 18px;border-radius:12px;
+       text-decoration:none;font-weight:800;font-size:1.02rem;color:#fff;
+       background:linear-gradient(90deg,#e11d48,#f97316);box-shadow:0 8px 24px rgba(225,29,72,.35)}
+  .cta:hover{filter:brightness(1.1)}
+  .trust{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px;
+         font-size:.7rem;color:#a1a1aa}
+  .trust span{border:1px solid #27272a;border-radius:999px;padding:4px 10px;background:#101013}
+  footer{padding:18px 16px 26px;text-align:center;font-size:.68rem;color:#52525b;
+         border-top:1px solid #18181b;line-height:1.8}
+  footer a{color:#71717a}
+  .ov{position:fixed;inset:0;z-index:50;display:flex;flex-direction:column;align-items:center;
+      justify-content:center;gap:16px;background:rgba(9,9,11,.96);text-align:center;padding:24px}
+  .spinner{width:46px;height:46px;border-radius:50%;border:4px solid #27272a;
+           border-top-color:#e11d48;animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .ov p{font-weight:700}
+  .ov a{font-size:.75rem;color:#71717a}
+</style>
+</head>
+<body>
+<header>
+  <img src="/wasmo-logo.png" alt="Wasmo" width="34" height="34">
+  <span class="brand">Wasmo</span>
+  <span class="pill">● <b id="online">1,247</b> online now</span>
+</header>
+
+<div class="scan" id="scan">🔍 Finding girls near <b>${cityHtml}</b>…<div class="bar"><i></i></div></div>
+
+<main id="wrap" hidden>
+  <h1><b>${matched} girls</b> near ${cityHtml} are online right now</h1>
+  <p class="sub">They want to chat and show off — free access, no signup, no credit card.</p>
+  <div class="grid">
+    ${cards}
+  </div>
+  <a class="cta" href="?go=1&amp;src=${esc(src)}.cta" rel="nofollow sponsored">🔓 Daawo Hadda — Unlock Free Access</a>
+  <div class="trust">
+    <span>🔒 Private</span><span>🚫 No credit card</span><span>✅ Hormuud · Somtel · Telesom</span>
+  </div>
+</main>
+
+<div class="ov" id="ov" hidden>
+  <div class="spinner"></div>
+  <p id="ovmsg">Securing your spot…</p>
+  <a href="?go=1&amp;src=${esc(src)}.fallback">Click here if nothing happens</a>
+</div>
+
+<footer>
+  All models are 18 years or older.<br>18+ only · <a href="/">← Back to Wasmo</a>
+</footer>
+
+<noscript><style>#scan{display:none!important}#wrap{display:block!important}</style></noscript>
+<script>
+  var SRC=${safeSrc};
+  (function(){
+    var scan=document.getElementById('scan'),wrap=document.getElementById('wrap');
+    setTimeout(function(){scan.hidden=true;wrap.hidden=false;},950);
+    var el=document.getElementById('online'),n=1160+Math.floor(Math.random()*260);
+    el.textContent=n.toLocaleString('en');
+    setInterval(function(){n+=Math.floor(Math.random()*11)-5;
+      if(n<900)n+=20;el.textContent=n.toLocaleString('en');},3000);
+  })();
+  function go(s){
+    var ov=document.getElementById('ov');
+    ov.hidden=false;document.body.style.overflow='hidden';
+    var m=document.getElementById('ovmsg'),
+        steps=['Securing your spot…','Activating free access…','Almost there…'],i=0;
+    var t=setInterval(function(){i++;if(i<steps.length)m.textContent=steps[i];},480);
+    setTimeout(function(){
+      clearInterval(t);
+      location.replace('/go/${offerId}?go=1&src='+encodeURIComponent(SRC+'.'+s));
+    },1450);
+  }
+</script>
+</body>
+</html>`;
+
+  return new Response(html, {
+    status: 200,
+    headers: {
+      'content-type': 'text/html; charset=utf-8',
+      'x-robots-tag': 'noindex, nofollow, noarchive',
+      'cache-control': 'private, no-store',
+      'referrer-policy': 'no-referrer',
+      'content-security-policy':
+        "default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline'; " +
+        "script-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'",
     },
   });
 }
@@ -292,7 +530,7 @@ function offerGateCardHtml(offer, offerId) {
   return `
   <div class="aff-wrap">
     <div class="aff-divider"><span>Advertisement</span></div>
-    <a class="aff-card" href="/go/${esc(offerId)}" rel="nofollow sponsored">
+    <a class="aff-card" href="/go/${esc(offerId)}?src=agegate" rel="nofollow sponsored">
       <div class="aff-glow"></div>
       <div class="aff-title">${esc(offer.title)}</div>
       <div class="aff-sub">${esc(offer.subtitle)}</div>
@@ -759,9 +997,11 @@ const worker = {
       /* ---------- Age verification endpoint ---------- */
       if (path === '/api/age-verify') return await handleAgeVerify(request, env);
 
-      /* ---------- Affiliate offer redirects (cloaked) ---------- */
+      /* ---------- Affiliate offer funnel (prelander + cloaked exit) ---------- */
       const goMatch = path.match(/^\/go\/([A-Za-z0-9_-]+)\/?$/);
-      if (goMatch) return handleGoRedirect(env, decodeURIComponent(goMatch[1]), ctx);
+      if (goMatch) {
+        return handleGo(env, decodeURIComponent(goMatch[1]), request, url, ctx);
+      }
 
       /* ---------- Signed URL issuance ---------- */
       const signMatch = path.match(/^\/api\/videos\/([^/]+)\/sign$/);
