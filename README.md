@@ -13,7 +13,7 @@ Production-ready reference implementation: **React (Next.js 16) + Supabase (Post
 | `supabase/schema.sql` | Full DB schema: tables, indexes (slug/tag/full-text/trigram), RLS policies, RPCs (`increment_view_count`, `search_videos`), seed demo data |
 | `workers/worker.js` + `wrangler.toml` | Edge layer: age-gate cookie enforcement, HMAC-signed HLS tokens (5–15 min), `.m3u8`/segment gateway with Referer/Origin allowlist, dynamic OG/Twitter meta injection, `/sitemap.xml` (Google video sitemap), `/robots.txt`, Cache API with stale-while-revalidate |
 | `src/components/video/VideoPlayer.tsx` | hls.js + MSE player: `controlsList="nodownload"`, context-menu disabled, manifest URL kept in refs only (never DOM/state), automatic token re-mint on expiry |
-| `src/components/video/VideoDetail.jsx` | Standalone page component (react-helmet-async, portable to Vite/Remix/CRA): canonical + robots + hreflang, JSON-LD `VideoObject` + `BreadcrumbList` + `FAQPage`, Quick-Answer block (50–100 words), crawlable transcript, visible FAQ |
+| `src/components/video/VideoDetail.jsx` | Standalone page component (React 19 native head hoisting, portable to Vite/Remix/CRA): canonical + robots + hreflang, JSON-LD `VideoObject` + `BreadcrumbList` + `FAQPage`, Quick-Answer block (50–100 words), crawlable transcript, visible FAQ |
 | `src/components/video/AgeGate.tsx` | Client modal layer of age verification (edge worker is layer 2); persists attestation to `profiles.age_verified` for signed-in users |
 | `src/lib/seo.ts` | JSON-LD builders, ISO-8601 durations, AEO summary word-count validation |
 | `src/lib/supabase.ts` | Typed data access — **public projections never select `stream_id`/`hls_path`**; falls back to fixtures until schema is applied |

@@ -2,9 +2,9 @@
  * ============================================================================
  * WASMO — VideoDetail.jsx (standalone, framework-portable)
  * ============================================================================
- * Framework: React 18+ with react-helmet-async (Vite / CRA / Remix).
- *   • Next.js App Router alternative: use `generateMetadata()` + a server
- *     component instead of Helmet (see this project's app router demo).
+ * Framework: React 19+ — <title>/<meta>/<link> rendered anywhere in the tree
+ *   are hoisted to <head> natively (no helmet library needed; also portable
+ *   to Vite / CRA / Remix). Next.js App Router alternative: `generateMetadata()`.
  *
  * SEO features
  *   – Canonical URL, robots directive, hreflang alternates (en / so / x-default)
@@ -22,7 +22,6 @@
  * ============================================================================
  */
 
-import { Helmet } from 'react-helmet-async';
 import VideoPlayer from './VideoPlayer'; // the hls.js player from this project
 
 const SITE_URL = 'https://wasmo.site';
@@ -139,7 +138,8 @@ export default function VideoDetail({ video, related = [] }) {
   return (
     <>
       {/* ────────────────────────────── HEAD ────────────────────────────── */}
-      <Helmet prioritizeSeoTags>
+      {/* React 19: these <title>/<meta>/<link> tags are auto-hoisted to <head> */}
+      <>
         <title>{title}</title>
         <meta name="description" content={description} />
         <link rel="canonical" href={canonical} />
@@ -168,7 +168,7 @@ export default function VideoDetail({ video, related = [] }) {
         <meta name="twitter:title" content={video.title} />
         <meta name="twitter:description" content={description} />
         {video.thumbnail_url && <meta name="twitter:image" content={video.thumbnail_url} />}
-      </Helmet>
+      </>
 
       {/* JSON-LD graph: VideoObject + BreadcrumbList + (FAQPage) */}
       <JsonLd data={buildVideoObject(video)} />

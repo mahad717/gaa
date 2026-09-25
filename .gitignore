@@ -55,3 +55,8 @@ server.log
 # Next.js static export copied into the worker deploy bundle
 workers/out/
 out/
+# wrangler local dev state (never commit miniflare artifacts)
+workers/.wrangler/
+# one-time credential files
+.gh_token
+.cf_token

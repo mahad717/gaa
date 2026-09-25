@@ -9,8 +9,15 @@
 import { createClient } from '@supabase/supabase-js';
 import { FIXTURE_VIDEOS, type Video } from './fixtures';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
+// Build-safe defaults: these are the PUBLIC anon credentials (role "anon",
+// RLS in schema.sql is the real boundary), inlined so CI builds (Cloudflare
+// Workers Builds etc.) without NEXT_PUBLIC_* env vars still render live data.
+// Set NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY to override.
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://kpfhccjgsgrdwjqhqtrg.supabase.co';
+const SUPABASE_ANON_KEY =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwZmhjY2pnc2dyZHdqcWhxdHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwMTA0MDEsImV4cCI6MjEwNTU4NjQwMX0.p2n5xYBr_aNs_-f8Xb2DlLKooDEu2YBcIg2tZhMshYA';
 
 export const isSupabaseConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 

@@ -7,7 +7,7 @@
 import type { Video } from './fixtures';
 
 export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://wasmo.site';
+  process.env.NEXT_PUBLIC_SITE_URL ?? 'https://gaa.gabeyre80.workers.dev';
 
 export const SITE_NAME = 'Wasmo';
 
