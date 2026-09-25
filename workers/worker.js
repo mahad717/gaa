@@ -30,9 +30,10 @@ const CACHE_BUILD = 'v3';
  * banner, mobile sticky bar) all funnel into ONE cloaked link:
  * 1. Log in to CrakRevenue → Tools → Smartlinks → copy YOUR smartlink URL
  * 2. Paste it as `url` below → redeploy. Public /go/ links NEVER change.
+ *    (Current live smartlink pasted 2026-09-25; aff_sub5 = CR source code.)
  */
 const SMARTLINK_OFFER = {
-  url: 'https://crakrevenue.com/', // ← TODO: paste your CrakRevenue smartlink tracking URL
+  url: 'https://t.aslr1.com/424142/3788/0?po=6456&aff_sub5=SF_006OG000004lmDN',
   title: '🔥 Hot 18+ content in your area',
   subtitle: 'Bilaash · No signup · Works on Hormuud, Somtel & Telesom',
   cta: '▶ Daawo Hadda — Watch Free',
@@ -299,14 +300,19 @@ function handleGo(env, offerId, request, url, ctx) {
     const cid = clickId();
     const target = new URL(offer.url);
     if (offer.track !== false) {
-      // Forward caller-supplied sub* params, then stamp ours (CrakRevenue
-      // smartlinks accept sub1..sub5; adjust names here if your campaign
-      // uses different tracking params).
+      // Forward caller-supplied sub* params, then stamp ours in BOTH naming
+      // conventions: sub1/sub2 and CrakRevenue's aff_sub/aff_sub2 (the
+      // smartlink itself carries aff_sub5 = CR source code — never overwrite
+      // that). Whichever family the campaign reads, click id + placement
+      // survive. Unknown extra params are ignored by the network.
       for (const [k, v] of url.searchParams) {
         if (/^sub\d*$/i.test(k) && v) target.searchParams.set(k, v);
       }
+      const placement = `${offerId}.${src}`; // placement + interaction
       target.searchParams.set('sub1', cid); // unique click id
-      target.searchParams.set('sub2', `${offerId}.${src}`); // placement + interaction
+      target.searchParams.set('sub2', placement);
+      target.searchParams.set('aff_sub', cid); // same values, CR naming
+      target.searchParams.set('aff_sub2', placement);
     }
     ctx?.waitUntil(
       Promise.resolve().then(() =>
