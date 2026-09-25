@@ -30,10 +30,11 @@ const CACHE_BUILD = 'v3';
  * banner, mobile sticky bar) all funnel into ONE cloaked link:
  * 1. Log in to CrakRevenue → Tools → Smartlinks → copy YOUR smartlink URL
  * 2. Paste it as `url` below → redeploy. Public /go/ links NEVER change.
- *    (Current live smartlink pasted 2026-09-25; aff_sub5 = CR source code.)
+ *    (2026-09-25: swapped to t.camsk5.com/424142/3664 — user-verified working
+ *    on Somali networks where the t.aslr1.com/3788 link is ISP-blocked.)
  */
 const SMARTLINK_OFFER = {
-  url: 'https://t.aslr1.com/424142/3788/0?po=6456&aff_sub5=SF_006OG000004lmDN',
+  url: 'https://t.camsk5.com/424142/3664/0?target=domainredirects&po=6533&aff_sub5=SF_006OG000004lmDN',
   /* Geo fallback — Somali ISPs (Hormuud, Somtel, Telesom) DNS-block
    * adult-categorized domains (NCA porn ban). The adult smartlink AND every
    * domain it hops through (aslr1/vfgth/othsk9/affenhance) die there, so
@@ -42,7 +43,7 @@ const SMARTLINK_OFFER = {
    * exit there automatically; every other country keeps the default URL.
    * Test a mapping without leaving your desk: /go/smartlink?go=1&_cc=SO */
   alt: {
-    SO: '', // ← paste a Somalia-friendly MAINSTREAM smartlink here
+    SO: '', // ← if this link ever gets ISP-blocked too, paste a mainstream offer
   },
   title: '🔥 Hot 18+ content in your area',
   subtitle: 'Bilaash · No signup · Works on Hormuud, Somtel & Telesom',
