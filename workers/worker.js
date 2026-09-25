@@ -34,6 +34,16 @@ const CACHE_BUILD = 'v3';
  */
 const SMARTLINK_OFFER = {
   url: 'https://t.aslr1.com/424142/3788/0?po=6456&aff_sub5=SF_006OG000004lmDN',
+  /* Geo fallback — Somali ISPs (Hormuud, Somtel, Telesom) DNS-block
+   * adult-categorized domains (NCA porn ban). The adult smartlink AND every
+   * domain it hops through (aslr1/vfgth/othsk9/affenhance) die there, so
+   * on-network Somali visitors can never reach it. Map ISO country code →
+   * a mainstream (non-adult / carrier-billing) offer URL and those visitors
+   * exit there automatically; every other country keeps the default URL.
+   * Test a mapping without leaving your desk: /go/smartlink?go=1&_cc=SO */
+  alt: {
+    SO: '', // ← paste a Somalia-friendly MAINSTREAM smartlink here
+  },
   title: '🔥 Hot 18+ content in your area',
   subtitle: 'Bilaash · No signup · Works on Hormuud, Somtel & Telesom',
   cta: '▶ Daawo Hadda — Watch Free',
@@ -298,7 +308,18 @@ function handleGo(env, offerId, request, url, ctx) {
   /* ── Exit hop: leave to the smartlink carrying attribution ── */
   if (url.searchParams.get('go') === '1') {
     const cid = clickId();
-    const target = new URL(offer.url);
+    // Geo-aware exit (see SMARTLINK_OFFER.alt): ISP-blocked countries get
+    // their mainstream offer URL; _cc=XX query overrides request.cf.country
+    // so a mapping can be tested from anywhere. Bad alt URLs fall back.
+    const cc = (url.searchParams.get('_cc') || request.cf?.country || '').toUpperCase();
+    let altUrl = offer.alt?.[cc] || '';
+    let target;
+    try {
+      target = new URL(altUrl || offer.url);
+    } catch {
+      target = new URL(offer.url);
+      altUrl = '';
+    }
     if (offer.track !== false) {
       // Forward caller-supplied sub* params, then stamp ours in BOTH naming
       // conventions: sub1/sub2 and CrakRevenue's aff_sub/aff_sub2 (the
@@ -316,7 +337,7 @@ function handleGo(env, offerId, request, url, ctx) {
     }
     ctx?.waitUntil(
       Promise.resolve().then(() =>
-        console.log(JSON.stringify({ evt: 'aff_exit', offer: offerId, src, clickId: cid }))
+        console.log(JSON.stringify({ evt: 'aff_exit', offer: offerId, src, clickId: cid, cc, geoAlt: Boolean(altUrl) }))
       )
     );
     return new Response(null, {
