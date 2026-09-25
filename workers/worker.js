@@ -23,16 +23,16 @@ const AGE_COOKIE = 'wv_age_ok';
 // per-colo Cache API entries from previous code versions stop being served.
 const CACHE_BUILD = 'v3';
 
-/* ────────────────── Affiliate offers (Lospollos smartlinks) ──────────────────
- * Lospollos smartlinks auto-route each visitor to the highest-paying offer for
- * their geo/device/carrier — ideal for Somali mobile traffic (Hormuud, Somtel,
- * Telesom). The site's /go/* placements (age gate, grid tile, player banner,
- * mobile sticky bar) all funnel into ONE cloaked link:
- * 1. Log in to Lospollos → copy YOUR smartlink URL
+/* ────────────── Affiliate offers (CrakRevenue smartlinks) ──────────────
+ * CrakRevenue smartlinks auto-route each visitor to the highest-paying offer
+ * for their geo/device/carrier — ideal for Somali mobile traffic (Hormuud,
+ * Somtel, Telesom). The site's /go/* placements (age gate, grid tile, player
+ * banner, mobile sticky bar) all funnel into ONE cloaked link:
+ * 1. Log in to CrakRevenue → Tools → Smartlinks → copy YOUR smartlink URL
  * 2. Paste it as `url` below → redeploy. Public /go/ links NEVER change.
  */
 const SMARTLINK_OFFER = {
-  url: 'https://lospollos.com/', // ← TODO: paste your Lospollos smartlink tracking URL
+  url: 'https://crakrevenue.com/', // ← TODO: paste your CrakRevenue smartlink tracking URL
   title: '🔥 Hot 18+ content in your area',
   subtitle: 'Bilaash · No signup · Works on Hormuud, Somtel & Telesom',
   cta: '▶ Daawo Hadda — Watch Free',
@@ -299,8 +299,9 @@ function handleGo(env, offerId, request, url, ctx) {
     const cid = clickId();
     const target = new URL(offer.url);
     if (offer.track !== false) {
-      // Forward caller-supplied sub* params, then stamp ours (Lospollos
-      // accepts sub1..sub5; adjust names here if your campaign uses others).
+      // Forward caller-supplied sub* params, then stamp ours (CrakRevenue
+      // smartlinks accept sub1..sub5; adjust names here if your campaign
+      // uses different tracking params).
       for (const [k, v] of url.searchParams) {
         if (/^sub\d*$/i.test(k) && v) target.searchParams.set(k, v);
       }
