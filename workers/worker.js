@@ -354,14 +354,14 @@ function handleGo(env, offerId, request, url, ctx) {
 
 /** Teaser roster — placeholder personas; the smartlink serves the real ones. */
 const PRELANDER_MODELS = [
-  { n: 'Amina', a: 21, d: '0.8 km', g: 'linear-gradient(160deg,#7c3aed,#e11d48)', i: 'wants to chat' },
-  { n: 'Hodan', a: 23, d: '1.2 km', g: 'linear-gradient(160deg,#e11d48,#f97316)', i: 'is live now' },
-  { n: 'Sagal', a: 20, d: '1.9 km', g: 'linear-gradient(160deg,#0ea5e9,#7c3aed)', i: 'just joined' },
-  { n: 'Ubah', a: 22, d: '2.4 km', g: 'linear-gradient(160deg,#f97316,#eab308)', i: 'wants a video call' },
-  { n: 'Deqa', a: 19, d: '2.9 km', g: 'linear-gradient(160deg,#db2777,#7c3aed)', i: 'is feeling lonely' },
-  { n: 'Fartun', a: 24, d: '3.1 km', g: 'linear-gradient(160deg,#059669,#0ea5e9)', i: 'wants to chat' },
-  { n: 'Nasra', a: 21, d: '3.6 km', g: 'linear-gradient(160deg,#ea580c,#e11d48)', i: 'is live now' },
-  { n: 'Idil', a: 20, d: '4.2 km', g: 'linear-gradient(160deg,#e11d48,#7c3aed)', i: 'just joined' },
+  { n: 'Amina', a: 21, d: '0.8 km', r: '4.9', g: 'linear-gradient(160deg,#7c3aed,#e11d48)' },
+  { n: 'Hodan', a: 23, d: '1.2 km', r: '4.8', g: 'linear-gradient(160deg,#e11d48,#f97316)' },
+  { n: 'Sagal', a: 20, d: '1.9 km', r: '4.7', g: 'linear-gradient(160deg,#0ea5e9,#7c3aed)' },
+  { n: 'Ubah', a: 22, d: '2.4 km', r: '4.9', g: 'linear-gradient(160deg,#f97316,#eab308)' },
+  { n: 'Deqa', a: 19, d: '2.9 km', r: '4.8', g: 'linear-gradient(160deg,#db2777,#7c3aed)' },
+  { n: 'Fartun', a: 24, d: '3.1 km', r: '4.7', g: 'linear-gradient(160deg,#059669,#0ea5e9)' },
+  { n: 'Nasra', a: 21, d: '3.6 km', r: '4.8', g: 'linear-gradient(160deg,#ea580c,#e11d48)' },
+  { n: 'Idil', a: 20, d: '4.2 km', r: '4.9', g: 'linear-gradient(160deg,#e11d48,#7c3aed)' },
 ];
 
 const SILHOUETTE_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.6" r="4" fill="rgba(255,255,255,.88)"/><path d="M3.5 21c.6-4.2 4-6.4 8.5-6.4s7.9 2.2 8.5 6.4z" fill="rgba(255,255,255,.88)"/></svg>`;
@@ -376,12 +376,13 @@ const SILHOUETTE_SVG = `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="
 function prelanderHtml(offer, offerId, src, city) {
   const cityHtml = city ? esc(city) : 'your area';
   const matched = 3 + Math.floor(Math.random() * 4); // 3-6 near you
+  const joined = (1800 + Math.floor(Math.random() * 1400)).toLocaleString('en-US');
   const cards = PRELANDER_MODELS.map(
     (m) => `<button class="card" type="button" onclick="go('pick-${m.n.toLowerCase()}')">
       <span class="ava" style="background:${m.g}">${SILHOUETTE_SVG}
         <span class="live"><i></i>LIVE</span>
       </span>
-      <span class="m"><b>${m.n}, ${m.a}</b><small>${m.d} · ${m.i}</small></span>
+      <span class="m"><b>${m.n}, ${m.a}</b><small>${m.d} · <b class="st">★ ${m.r}</b></small></span>
     </button>`
   ).join('\n    ');
   const safeSrc = JSON.stringify(src).replace(/</g, '\\u003c');
@@ -391,6 +392,7 @@ function prelanderHtml(offer, offerId, src, city) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#09090b">
 <meta name="robots" content="noindex, nofollow, noarchive">
 <meta name="rating" content="adult">
 <meta name="rating" content="RTA-5042-1996-1400-1577-RTA">
@@ -407,16 +409,21 @@ function prelanderHtml(offer, offerId, src, city) {
         background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.25);
         padding:4px 9px;border-radius:999px;white-space:nowrap}
   main{width:100%;max-width:560px;margin:0 auto;padding:22px 16px 30px;flex:1}
-  .scan{text-align:center;padding:44px 16px;color:#a1a1aa}
+  .scan{text-align:center;padding:26px 16px 8px;color:#a1a1aa}
   .scan b{color:#fafafa}
-  .bar{max-width:300px;height:5px;background:#18181b;border-radius:999px;margin:16px auto 0;overflow:hidden}
+  .bar{max-width:300px;height:5px;background:#18181b;border-radius:999px;margin:12px auto 0;overflow:hidden}
   .bar i{display:block;height:100%;width:8%;border-radius:999px;
          background:linear-gradient(90deg,#e11d48,#f97316);animation:scan .9s ease-out forwards}
   @keyframes scan{from{width:8%}to{width:100%}}
   h1{font-size:1.28rem;line-height:1.3;margin-bottom:6px}
   h1 b{color:#fb7185}
-  .sub{color:#a1a1aa;font-size:.9rem;margin-bottom:16px}
-  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:18px}
+  .sub{color:#a1a1aa;font-size:.9rem;margin-bottom:10px}
+  .proof{display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap;
+         font-size:.75rem;color:#d4d4d8;margin-bottom:12px}
+  .proof b{color:#fafafa}
+  .stars{color:#fbbf24;letter-spacing:2px}
+  .st{color:#fbbf24;font-weight:600}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:14px 0}
   @media(min-width:480px){.grid{grid-template-columns:repeat(4,1fr)}}
   .card{position:relative;overflow:hidden;border:1px solid #27272a;border-radius:14px;
         background:#101013;padding:0 0 8px;cursor:pointer;text-align:left;
@@ -434,7 +441,7 @@ function prelanderHtml(offer, offerId, src, city) {
   .m b{display:block;font-size:.82rem;color:#fafafa}
   .m small{display:block;font-size:.68rem;color:#a1a1aa;margin-top:1px}
   .cta{display:block;width:100%;text-align:center;padding:15px 18px;border-radius:12px;
-       text-decoration:none;font-weight:800;font-size:1.02rem;color:#fff;
+       text-decoration:none;font-weight:800;font-size:1.02rem;color:#fff;margin-bottom:10px;
        background:linear-gradient(90deg,#e11d48,#f97316);box-shadow:0 8px 24px rgba(225,29,72,.35)}
   .cta:hover{filter:brightness(1.1)}
   .trust{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:14px;
@@ -454,7 +461,7 @@ function prelanderHtml(offer, offerId, src, city) {
 </head>
 <body>
 <header>
-  <img src="/wasmo-logo.png" alt="Wasmo" width="34" height="34">
+  <img src="/logo-96.png" alt="Wasmo" width="34" height="34" fetchpriority="high">
   <span class="brand">Wasmo</span>
   <span class="pill">● <b id="online">1,247</b> online now</span>
 </header>
@@ -463,7 +470,10 @@ function prelanderHtml(offer, offerId, src, city) {
 
 <main id="wrap" hidden>
   <h1><b>${matched} girls</b> near ${cityHtml} are online right now</h1>
-  <p class="sub">They want to chat and show off — free access, no signup, no credit card.</p>
+  <p class="sub">Free access — bilaash · no signup · no credit card.</p>
+  <div class="proof"><span class="stars">★★★★★</span> <b>4.8</b> rating ·
+    <span>12,400+ members</span> · <span>${joined} joined this week</span></div>
+  <a class="cta" href="?go=1&amp;src=${esc(src)}.ctatop" rel="nofollow sponsored">🔓 Daawo Hadda — Unlock Free Access</a>
   <div class="grid">
     ${cards}
   </div>
@@ -480,7 +490,7 @@ function prelanderHtml(offer, offerId, src, city) {
 </div>
 
 <footer>
-  All models are 18 years or older.<br>18+ only · <a href="/">← Back to Wasmo</a>
+  All models are 18 years or older · 18+ only
 </footer>
 
 <noscript><style>#scan{display:none!important}#wrap{display:block!important}</style></noscript>
@@ -584,7 +594,7 @@ function ageInterstitial(redirectUrl, env) {
 </head>
 <body>
 <main class="card">
-  <img src="/wasmo-logo.png" alt="Wasmo" width="56" height="56"
+  <img src="/logo-96.png" alt="Wasmo" width="56" height="56"
        style="border-radius:14px;margin:0 auto 14px;display:block;border:1px solid #3f3f46">
   <h1>This website contains age-restricted material</h1>
   <p>You must be 18 years or older (or the age of majority in your jurisdiction) to enter.
